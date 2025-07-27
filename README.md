@@ -6,13 +6,14 @@
 |
 | - st_mem_modified
 
-### ecg_jepa_modified
-
-modification of the ECG-JEPA method, code based on the provided in repository https://github.com/sehunfromdaegu/ECG_JEPA
-
 ### st_mem_modified
 
-modification of the ST-MEM method, code based on the provided in repository https://github.com/bakqui/ST-MEM
+modification of the ST-MEM method by me, code based on the provided in repository https://github.com/bakqui/ST-MEM
+
+
+### ecg_jepa_modified
+
+modification of the ECG-JEPA method by Egor Padin, code based on the provided in repository https://github.com/sehunfromdaegu/ECG_JEPA
 
 
 ## Setup

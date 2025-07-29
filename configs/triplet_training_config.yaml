@@ -1,0 +1,30 @@
+# Triplet Loss Training Configuration
+
+# Device settings
+device: 'mps'
+
+# Model paths and configuration
+model:
+  type: 'encoder'
+  config_path: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/configs/downstream/ptb_xl_linprobe.yaml'
+  encoder_path: 'weights/st_mem_vit_base_encoder.pth'
+
+# Training parameters
+training:
+  batch_size: 128
+  num_workers: 8
+  epochs: 20
+  learning_rate: 1.5e-4
+
+# Output paths
+output:
+  output_dir: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/triplet_exp'
+  best_model_path: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/triplet_exp/best_f1_model.pth'
+  embeddings_output: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/embeddings_results_triplet_loss2.csv'
+  classification_output: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/classification_st_mem_cluster_triplet.csv'
+
+# Data paths
+data:
+  data_path: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/records500_processed'
+  val_csv: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_val.csv'
+  train_csv: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_train_val.csv'

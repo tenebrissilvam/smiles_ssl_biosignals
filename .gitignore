@@ -140,3 +140,9 @@ logs/
 
 # Conda
 .conda/
+
+#Personal
+
+st_mem_modified/jupyter_notebooks/
+st_mem_modified/inference_results/
+st_mem_modified/outs/

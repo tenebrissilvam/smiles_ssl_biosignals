@@ -21,11 +21,14 @@ modification of the ECG-JEPA method by Egor Padin, code based on the provided in
 ### Create Conda Environment
 ```bash
 conda env create -f environment.yml
+
 conda activate ssl-ecg-biosignals
 ```
 
 ### Install Pre-commit Hooks
 ```bash
+pip install pre-commit
+
 pre-commit install
 ```
 

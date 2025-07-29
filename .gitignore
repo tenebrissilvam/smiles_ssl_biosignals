@@ -132,7 +132,7 @@ Thumbs.db
 *.ckpt
 weights/
 checkpoints/
-models/
+#models/
 
 # Logs
 logs/
@@ -146,3 +146,5 @@ logs/
 st_mem_modified/jupyter_notebooks/
 st_mem_modified/inference_results/
 st_mem_modified/outs/
+st_mem_modified/misc_py_files
+st_mem_modified/st_mem

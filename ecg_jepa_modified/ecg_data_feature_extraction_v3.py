@@ -1,48 +1,51 @@
+import glob
+import os
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool, cpu_count
+
+import h5py
 import numpy as np
-from utils import return_purified, return_purified_feature, return_unique
+import torch
+import wfdb
+from ECG_features_extracting_fin_v3 import augment_ecg_channels
 from scipy.signal import resample
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
-import torch
-import os
-import wfdb
 from tqdm import tqdm
-import glob
-import h5py
-from multiprocessing import Pool, cpu_count
-from concurrent.futures import ThreadPoolExecutor
-from ECG_features_extracting_fin_v3 import augment_ecg_channels
+from utils import return_purified, return_purified_feature, return_unique
+
 
 # Function to downsample waves using resampling
 def downsample_waves(waves, new_size):
     return np.array([resample(wave, new_size, axis=1) for wave in waves])
 
+
 def remove_invalid_samples(waves, index=False):
     """
     Remove samples with NaN values or samples with the first 15 timesteps being all zeros.
-    
+
     Args:
     waves (numpy.ndarray): The input array with shape (n_samples, n_channels, n_timesteps).
     index (bool): If True, output is indices of valid samples; otherwise, output is the valid samples themselves.
     """
     # Remove samples with NaN values
     nan_mask = np.isnan(waves).any(axis=(1, 2))
-    
+
     # Remove samples with all zeros in the first 15 timesteps
-    zero_mask = (np.abs(waves[:, :, :15]).sum(axis=(1, 2)) == 0)
-    
+    zero_mask = np.abs(waves[:, :, :15]).sum(axis=(1, 2)) == 0
+
     # Combine masks to find valid samples
     valid_indices = ~(nan_mask | zero_mask)
-    
+
     # Print the number of invalid samples
     n_invalid = np.sum(~valid_indices)
-    print(f'invalid samples: {n_invalid}')
-    
+    print(f"invalid samples: {n_invalid}")
+
     if index:
         return valid_indices
     else:
         return waves[valid_indices]
-    
+
 
 # Custom dataset class
 class ECGDataset(Dataset):
@@ -62,6 +65,7 @@ class ECGDataset(Dataset):
             wave = self.transform(wave)
         return wave, label
 
+
 # Custom dataset class
 class ECGDataset_pretrain(Dataset):
     def __init__(self, waves):
@@ -74,11 +78,13 @@ class ECGDataset_pretrain(Dataset):
         wave = self.waves[idx]
         return wave
 
+
 def extract_diagnosis_code(record):
     for comment in record.comments:
-        if comment.startswith('Dx:'):
-            return comment.split(': ')[1]
+        if comment.startswith("Dx:"):
+            return comment.split(": ")[1]
     return None
+
 
 def get_ecg_data(data_dir, reduced_lead=True, use_more=False, dx=False):
     """
@@ -99,8 +105,8 @@ def get_ecg_data(data_dir, reduced_lead=True, use_more=False, dx=False):
     segment_length = 5000  # Length of each segment in samples (10 seconds at 500 Hz)
 
     for filename in os.listdir(data_dir):
-        if filename.endswith('.hea'):
-            #print('filename=',filename)
+        if filename.endswith(".hea"):
+            # print('filename=',filename)
             record_name = os.path.splitext(filename)[0]
             record = wfdb.rdrecord(os.path.join(data_dir, record_name))
             ecg_data = record.p_signal
@@ -116,7 +122,7 @@ def get_ecg_data(data_dir, reduced_lead=True, use_more=False, dx=False):
             if ecg_data.shape[0] >= segment_length:
                 ecg_records.append(ecg_data[:segment_length])
                 ecg_labels.append(ecg_label)
-    
+
     # Convert lists to numpy arrays
     ecg_records = np.stack(ecg_records, axis=0)
     ecg_records = ecg_records.transpose(0, 2, 1)  # (n_samples, n_channels, n_timesteps)
@@ -124,7 +130,9 @@ def get_ecg_data(data_dir, reduced_lead=True, use_more=False, dx=False):
 
     if reduced_lead:
         # Keep only the leads I, II, V1, V2, V3, V4, V5, V6
-        ecg_records = np.concatenate((ecg_records[:, :2, :], ecg_records[:, 6:, :]), axis=1)
+        ecg_records = np.concatenate(
+            (ecg_records[:, :2, :], ecg_records[:, 6:, :]), axis=1
+        )
 
     if dx:
         return ecg_records, ecg_labels
@@ -137,46 +145,61 @@ def subdirectory(data_dir):
     data_dirs = [d for d in contents if os.path.isdir(os.path.join(data_dir, d))]
     return data_dirs
 
+
 def waves_cinc(data_dir, reduced_lead=True):
     waves = []
     for subdir in subdirectory(data_dir):
         for minibatch in subdirectory(os.path.join(data_dir, subdir)):
-            ecg_data = get_ecg_data(os.path.join(data_dir, subdir, minibatch), reduced_lead=reduced_lead)
+            ecg_data = get_ecg_data(
+                os.path.join(data_dir, subdir, minibatch), reduced_lead=reduced_lead
+            )
             waves.append(ecg_data)
 
     waves = np.concatenate(waves, axis=0)
     waves = remove_invalid_samples(waves)
     return waves
+
 
 def waves_shao(data_dir, reduced_lead=True):
     waves = []
     for subdir in subdirectory(data_dir):
         for minibatch in subdirectory(os.path.join(data_dir, subdir)):
-            ecg_data = get_ecg_data(os.path.join(data_dir, subdir, minibatch), reduced_lead=reduced_lead)
+            ecg_data = get_ecg_data(
+                os.path.join(data_dir, subdir, minibatch), reduced_lead=reduced_lead
+            )
             waves.append(ecg_data)
 
     waves = np.concatenate(waves, axis=0)
     waves = remove_invalid_samples(waves)
     return waves
+
 
 # def waves_shao(data_dir, reduced_lead=True):
 #     waves = get_ecg_data(data_dir, reduced_lead=reduced_lead, dx=False)
 #     waves = remove_invalid_samples(waves)
 #     return waves
 
+
 class Code15Dataset(Dataset):
-    def __init__(self, data_dir, transform=None, reduced_lead=True, downsample=True, use_cache=True):
+    def __init__(
+        self,
+        data_dir,
+        transform=None,
+        reduced_lead=True,
+        downsample=True,
+        use_cache=True,
+    ):
         self.data_dir = data_dir
-        self.files = glob.glob(os.path.join(data_dir, '*.hdf5'))
+        self.files = glob.glob(os.path.join(data_dir, "*.hdf5"))
         self.transform = transform
-        self.reduced_lead = reduced_lead 
+        self.reduced_lead = reduced_lead
         self.downsample = downsample
         self.file_indices = []
         self._cache = {}
 
         # Cache file path
-        self.cache_file = os.path.join(data_dir, 'file_indices_cache.npy')
-         
+        self.cache_file = os.path.join(data_dir, "file_indices_cache.npy")
+
         # Precompute the indices for each file and filter out padded waves
         self._compute_file_indices(use_cache)
 
@@ -196,12 +219,14 @@ class Code15Dataset(Dataset):
     def _process_file(self, file_idx_and_name):
         file_idx, filename = file_idx_and_name
         valid_indices = []
-        with h5py.File(filename, 'r') as f:
-            print('filename=',filename)
-            num_samples = f['tracings'].shape[0]
+        with h5py.File(filename, "r") as f:
+            print("filename=", filename)
+            num_samples = f["tracings"].shape[0]
             for i in range(num_samples):
-                wave = np.array(f['tracings'][i])
-                if not np.all(wave[:10] == 0):  # Check if first 10 timesteps are not all zeros
+                wave = np.array(f["tracings"][i])
+                if not np.all(
+                    wave[:10] == 0
+                ):  # Check if first 10 timesteps are not all zeros
                     valid_indices.append(i)
         return file_idx, valid_indices
 
@@ -210,7 +235,9 @@ class Code15Dataset(Dataset):
 
     def __getitem__(self, idx):
         if idx >= len(self.file_indices):
-            raise IndexError(f"Index {idx} out of range for dataset with length {len(self.file_indices)}")
+            raise IndexError(
+                f"Index {idx} out of range for dataset with length {len(self.file_indices)}"
+            )
         file_idx, sample_idx = self.file_indices[idx]
         filename = self.files[file_idx]
 
@@ -218,54 +245,62 @@ class Code15Dataset(Dataset):
         if (file_idx, sample_idx) in self._cache:
             wave = self._cache[(file_idx, sample_idx)]
         else:
-            with h5py.File(filename, 'r') as f:
-                wave = np.array(f['tracings'][sample_idx])
-                print('filename=',filename)
-                print('wave=',wave)
+            with h5py.File(filename, "r") as f:
+                wave = np.array(f["tracings"][sample_idx])
+                print("filename=", filename)
+                print("wave=", wave)
             self._cache[(file_idx, sample_idx)] = wave  # Cache the loaded wave
 
         # Transpose the wave so channels come first
         wave = wave.T
-        
+
         if self.reduced_lead:
             wave = wave[[0, 1, 6, 7, 8, 9, 10, 11], :]
-        
+
         if self.downsample:
             wave = resample(wave, 2500, axis=1)
 
         if self.transform:
             wave = self.transform(wave)
-            
+
         return torch.tensor(wave, dtype=torch.float)
 
-def waves_ptbxl(data_dir, task='multilabel', reduced_lead=True, downsample=True):
-    from ptbxl_utils import load_dataset, compute_label_aggregations, select_data
-    assert task in ['multilabel', 'multiclass']
 
-    cat = 'superdiagnostic'
-    categories = ['all', 'diagnostic', 'subdiagnostic', 'superdiagnostic', 'form', 'rhythm']
-    assert cat in categories, f'Invalid category: {cat}, choose from {categories}'
+def waves_ptbxl(data_dir, task="multilabel", reduced_lead=True, downsample=True):
+    from ptbxl_utils import compute_label_aggregations, load_dataset, select_data
 
-    sampling_frequency=500
+    assert task in ["multilabel", "multiclass"]
+
+    cat = "superdiagnostic"
+    categories = [
+        "all",
+        "diagnostic",
+        "subdiagnostic",
+        "superdiagnostic",
+        "form",
+        "rhythm",
+    ]
+    assert cat in categories, f"Invalid category: {cat}, choose from {categories}"
+
+    sampling_frequency = 500
 
     # Load PTB-XL data
     data, raw_labels = load_dataset(data_dir, sampling_frequency)
-    data = data.transpose(0,2,1)
-    
+    data = data.transpose(0, 2, 1)
+
     if downsample:
         data = np.array([resample(data[i], 2500, axis=1) for i in range(len(data))])
-    
-    if reduced_lead:
-        data = np.concatenate([data[:,:2], data[:,6:]], axis=1)
 
-   
-    data=augment_ecg_channels(data)
+    if reduced_lead:
+        data = np.concatenate([data[:, :2], data[:, 6:]], axis=1)
+
+    data = augment_ecg_channels(data)
     # Preprocess label data
     labels = compute_label_aggregations(raw_labels, data_dir, cat)
     # Select relevant data and convert to one-hot
     data_, labels, Y, _ = select_data(data, labels, cat, min_samples=0)
-    
-    # 1-9 for training 
+
+    # 1-9 for training
     waves_train = data_[labels.strat_fold < 10]
     labels_train = Y[labels.strat_fold < 10]
 
@@ -273,20 +308,22 @@ def waves_ptbxl(data_dir, task='multilabel', reduced_lead=True, downsample=True)
     waves_test = data_[labels.strat_fold == 10]
     labels_test = Y[labels.strat_fold == 10]
 
-    if task == 'multiclass':
+    if task == "multiclass":
         waves_train, labels_train = convert_to_multiclass(waves_train, labels_train)
         waves_test, labels_test = convert_to_multiclass(waves_test, labels_test)
 
     return waves_train, waves_test, labels_train, labels_test
 
 
-def waves_cpsc(data_dir, task='multilabel', reduced_lead=True, downsample=True):
+def waves_cpsc(data_dir, task="multilabel", reduced_lead=True, downsample=True):
     waves_cpsc = []
     labels_cpsc = []
     minibatches = []
 
     for minibatch in subdirectory(data_dir):
-        ecg_data, ecg_labels = get_ecg_data(os.path.join(data_dir, minibatch), reduced_lead=True,  dx=True)
+        ecg_data, ecg_labels = get_ecg_data(
+            os.path.join(data_dir, minibatch), reduced_lead=True, dx=True
+        )
         waves_cpsc.append(ecg_data)
         labels_cpsc.append(ecg_labels)
         minibatches.extend([minibatch] * len(ecg_data))
@@ -297,10 +334,10 @@ def waves_cpsc(data_dir, task='multilabel', reduced_lead=True, downsample=True):
 
     # Remove samples with NaN values
     valid_indices = remove_invalid_samples(waves_cpsc, index=True)
-    
+
     # remove samples with empty labels
     for i in range(len(labels_cpsc)):
-        if labels_cpsc[i] == '':
+        if labels_cpsc[i] == "":
             valid_indices[i] = False
 
     waves_cpsc = waves_cpsc[valid_indices]
@@ -313,7 +350,7 @@ def waves_cpsc(data_dir, task='multilabel', reduced_lead=True, downsample=True):
     # Extract unique labels
     unique_labels = set()
     for label_str in np.unique(labels_cpsc):
-        labels = label_str.split(',')
+        labels = label_str.split(",")
         unique_labels.update(labels)
 
     unique_labels = sorted(unique_labels)
@@ -325,13 +362,13 @@ def waves_cpsc(data_dir, task='multilabel', reduced_lead=True, downsample=True):
 
     # Populate the binary matrix
     for i, label_str in enumerate(labels_cpsc):
-        labels = label_str.split(',')
+        labels = label_str.split(",")
         for label in labels:
             labels_matrix[i, label_to_index[label]] = 1
 
     labels_cpsc = labels_matrix
 
-    test_indices = (minibatches == 'g7')
+    test_indices = minibatches == "g7"
     train_indices = ~test_indices
 
     waves_train = waves_cpsc[train_indices]
@@ -339,16 +376,17 @@ def waves_cpsc(data_dir, task='multilabel', reduced_lead=True, downsample=True):
     waves_test = waves_cpsc[test_indices]
     labels_test = labels_cpsc[test_indices]
 
-    if task == 'multiclass':
+    if task == "multiclass":
         waves_train, labels_train = convert_to_multiclass(waves_train, labels_train)
         waves_test, labels_test = convert_to_multiclass(waves_test, labels_test)
 
     return waves_train, waves_test, labels_train, labels_test
 
+
 def convert_to_multiclass(waves, labels):
-    '''
+    """
     convert multi-label to multi-class by restricting to samples with only one label
-    '''
+    """
 
     label_sums = np.sum(labels, axis=1)
     indices_with_one_label = np.where(label_sums == 1)[0]
@@ -361,22 +399,27 @@ def convert_to_multiclass(waves, labels):
 
     return waves, labels
 
+
 def waves_from_config(config, reduced_lead=True):
     # model_name = config['model_name']
-    data_dir = config['data_dir']
-    dataset = config['dataset']
-    task = config['task']
+    data_dir = config["data_dir"]
+    dataset = config["dataset"]
+    task = config["task"]
 
     # if model_name == 'st_mem':
     #     reduced_lead = False
 
-    if dataset == 'ptbxl':
-        waves_train, waves_test, labels_train, labels_test = waves_ptbxl(data_dir, task, reduced_lead=reduced_lead)
+    if dataset == "ptbxl":
+        waves_train, waves_test, labels_train, labels_test = waves_ptbxl(
+            data_dir, task, reduced_lead=reduced_lead
+        )
 
-    elif dataset == 'cpsc':
-        waves_train, waves_test, labels_train, labels_test = waves_cpsc(data_dir, task, reduced_lead=reduced_lead)
+    elif dataset == "cpsc":
+        waves_train, waves_test, labels_train, labels_test = waves_cpsc(
+            data_dir, task, reduced_lead=reduced_lead
+        )
 
-    # # st_mem needs shorter waves 
+    # # st_mem needs shorter waves
     # if model_name == 'st_mem':
     #     waves_train = waves_train[:, :, 125:-125]
     #     waves_test = waves_test[:, :, 125:-125]

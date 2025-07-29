@@ -1,0 +1,73 @@
+seed: 42
+device: mps
+mode: triplet  # Set to linprobe for linear probing
+
+model_name: st_mem_vit_base
+triplet_path: /Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/triplet_exp/best_auroc_model.pth
+model:
+  num_leads: 12
+  num_classes: 5  # PTB-XL 5 diagnostic classes
+  seq_len: 2250   # PTB-XL uses 2500 samples (10s at 250Hz)
+  patch_size: 75
+
+dataset:
+  lead: 12lead
+  fs: 250
+  index_dir: /Users/tenebrissilvam/Code/smiles_2025/data/a-large-scale-12-lead-electrocardiogram-database-for-arrhythmia-study-1.0.0/
+  ecg_dir: /Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/records500_processed
+  train_csv: /Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_train_train.csv
+  valid_csv: /Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_train_val.csv
+  test_csv: /Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_val.csv
+  filename_col: RELATIVE_FILE_PATH
+  fs_col: SAMPLE_RATE
+  label_col: GENERAL_DIAGNOSIS
+  label_dtype: long
+  train_transforms:
+    - center_crop:
+        crop_length: 2250
+    - standardize
+  eval_transforms:
+    - center_crop:
+        crop_length: 2250
+    - standardize
+
+dataloader:
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+train:
+  epochs: 15
+  accum_iter: 1
+  lr: null
+  blr: 1.0e-3
+  min_lr: 1.0e-6
+  warmup_epochs: 5
+  weight_decay: 0.05
+  max_norm: 5.0
+  optimizer: adamw
+  dist_eval: false
+
+loss:
+  name: cross_entropy
+
+metric:
+  task: multiclass
+  num_classes: 5
+  compute_on_cpu: false
+  sync_on_compute: true
+  target_metrics:
+    - Accuracy
+    - F1Score
+    - AUROC
+
+resume:
+
+ddp:
+  distributed: false
+  dist_url: env://
+  world_size: 1
+  gpu: 0
+
+test:
+  target_metric: AUROC

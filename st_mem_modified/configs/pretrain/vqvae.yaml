@@ -1,0 +1,76 @@
+# VQ-VAE pre-training configuration
+
+# Init config
+seed: 42
+output_dir: './output'
+exp_name: 'vqvae_base'
+device: 'cuda'
+model_name: 'vqvae_base'
+
+# Model config
+model:
+  seq_len: 2250
+  patch_size: 75
+  num_leads: 12
+  encoder_width: 768
+  encoder_depth: 12
+  decoder_width: 512
+  decoder_depth: 4
+  mlp_ratio: 4
+  num_heads: 12
+  dim_head: 64
+  qkv_bias: True
+  latent_dim: 256
+  num_embeddings: 1024
+  commitment_cost: 0.25
+
+# Dataset config
+dataset:
+  lead: '12lead'
+  fs: 250
+  index_dir: './data/dummy'
+  ecg_dir: './data/dummy/ecgs'
+  train_csv: 'index.csv'
+  valid_csv: 'index.csv'
+  test_csv: 'index.csv'
+  filename_col: 'FILE_NAME'
+  fs_col: 'SAMPLE_RATE'
+  train_transforms:
+    - standardize
+  eval_transforms:
+    - standardize
+  rand_augment:
+    use: True
+    kwargs:
+      op_names: ['flip', 'cutout', 'shift', 'white_noise']
+      level: 5
+      num_layers: 2
+      prob: 0.5
+
+# Dataloader config
+dataloader:
+  batch_size: 64
+  num_workers: 8
+  pin_memory: True
+
+# Training config
+train:
+  epochs: 100
+  accum_iter: 1
+  warmup_epochs: 10
+  min_lr: 0.0
+  blr: 1.5e-4  # base learning rate: this is the learning rate for batch size 256
+  lr: null  # will be computed based on batch size
+  weight_decay: 0.05
+  optimizer: 'adamw'
+  optimizer_kwargs:
+    betas: [0.9, 0.95]
+    eps: 1.0e-8
+
+# DDP config
+ddp:
+  distributed: False
+  world_size: 1
+  dist_url: 'env://'
+  gpu: 0
+  rank: 0

@@ -1,4 +1,6 @@
-# SSL ECG Biosignals Processing
+<img width="1304" height="204" alt="image" src="https://github.com/user-attachments/assets/1f89eb68-39d6-434f-9191-e9537eed3900" />
+
+The project was completed during the Summer of Machine Learning program hosted by Skoltech and the Harbin Institute of Technology.
 
 ## General task
 
@@ -49,7 +51,9 @@ pre-commit run --all-files
 ## Project structure
 
 | - ecg_jepa_modified
+
 |
+
 | - st_mem_modified
 
 ### st_mem_modified
@@ -64,7 +68,7 @@ oritize temporal sequences alone.
 
 This is a modification of the ST-MEM method by me, code based on the provided in repository https://github.com/bakqui/ST-MEM
 
-#### run knn classification and clustering evaluation
+#### Run knn classification and clustering evaluation
 
 ```bash
 cd st_mem_modified/
@@ -73,7 +77,10 @@ bash scripts/run_inference_clusters.sh
 
 ```
 
-#### run triplet loss model training and inference
+#### Run triplet loss model training and inference
+
+<img width="272" height="357" alt="image" src="https://github.com/user-attachments/assets/a4350394-97e1-4ffa-a0a4-6f6cb65ffad2" />
+
 
 ```bash
 
@@ -83,7 +90,10 @@ bash scripts/run_triplet_loss_train_and_inference.sh
 
 ```
 
-#### run vq-vae model training and inference
+#### Run vq-vae model training and inference
+
+<img width="294" height="407" alt="image" src="https://github.com/user-attachments/assets/270a94bc-358a-44cb-95f8-564ac875c48a" />
+
 
 ```bash
 
@@ -94,6 +104,8 @@ bash scripts/run_triplet_loss_train_and_inference.sh
 ```
 
 ### ecg_jepa_modified
+
+<img width="728" height="390" alt="image" src="https://github.com/user-attachments/assets/a43d57ee-eaf4-40ed-87f1-0f2f480e6ab8" />
 
 Electrocardiogram Joint-Embedding Predictive
 Architecture learns semantic representations of 12-lead

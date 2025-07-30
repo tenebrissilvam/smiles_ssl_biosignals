@@ -6,6 +6,8 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+        exclude: 'SMILES_BIOSIGNALS-1.pdf'
+      - id: check-json
       - id: check-merge-conflict
 
   - repo: https://github.com/psf/black

@@ -1,0 +1,15 @@
+paths:
+  config_path: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/configs/downstream/encoder_vqvae_big.yaml'
+  output_dir: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/vq_vae_exp_big_codebook'
+  data_path: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/records500_processed'
+  val_csv: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_val.csv'
+  train_csv: '/Users/tenebrissilvam/Code/smiles_2025/data/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/index_GENERAL_DIAGNOSIS_train_val.csv'
+  checkpoint_path: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/vq_vae_exp_big/checkpoint-15.pth'
+
+outputs:
+  embeddings_csv: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/embeddings_vqvae_results.csv'
+  classification_csv: '/Users/tenebrissilvam/Code/smiles_2025/ST-MEM/outs/classification_st_mem_vqvae_cluster.csv'
+
+experiment:
+  exp_name: 'encoder_tuning_big_codebook'
+  device: 'mps'
